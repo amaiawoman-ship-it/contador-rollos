@@ -1,0 +1,800 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#14212b">
+<title>Carlos Condori · Control de rollos</title>
+<style>
+:root{
+  --bg:#eceff1; --surface:#ffffff; --ink:#14212b; --muted:#5b6b78; --line:#d3dae0;
+  --panel:#14212b; --panel-ink:#f4f6f7; --panel-muted:#9db0bd;
+  --accent:#f2b705; --accent-ink:#14212b; --danger:#b3261e; --odd:#fff1d6; --steel:#2f5d7c; --ok:#1d7a4d;
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --bg:#0e1317; --surface:#18212a; --ink:#eef2f4; --muted:#93a4b1; --line:#2a3743;
+    --panel:#1d2b36; --panel-ink:#f4f6f7; --panel-muted:#9db0bd;
+    --odd:#3a2f10; --steel:#7fb0d0; --danger:#ff8a80; --ok:#6fd3a0;
+  }
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font:16px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  padding:env(safe-area-inset-top,0px) 0 env(safe-area-inset-bottom,0px);
+}
+main{max-width:560px; margin:0 auto; padding:14px 14px 40px}
+button,input{font:inherit; color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--steel); outline-offset:2px}
+
+.top{display:flex; align-items:baseline; justify-content:space-between; padding:4px 2px 12px}
+.top h1{margin:0; font-size:22px; font-weight:800; letter-spacing:.04em}
+.top span{color:var(--muted); font-size:14px}
+
+/* Marcador principal */
+.hero{
+  position:relative; overflow:hidden; background:var(--panel); color:var(--panel-ink);
+  border-radius:16px; padding:18px 18px 16px; display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.5fr); gap:12px;
+}
+.hero svg{position:absolute; right:-60px; top:-60px; width:240px; height:240px; opacity:.13; pointer-events:none}
+.hero .cell{position:relative; min-width:0}
+.hero .num{
+  display:block; font-weight:800; line-height:1; font-variant-numeric:tabular-nums;
+  font-size:clamp(40px,15vw,72px); letter-spacing:-.02em;
+}
+.hero .cell.kg .num{font-size:clamp(30px,10.5vw,50px); padding-top:.2em; color:var(--accent)}
+.hero .lbl{display:block; margin-top:6px; color:var(--panel-muted); font-size:14px}
+
+/* Avance contra el documento */
+.goal{margin-top:10px; background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:12px 14px; display:grid; gap:12px}
+.goal .gt{display:flex; justify-content:space-between; gap:10px; font-size:15px}
+.goal .gt span{color:var(--muted)}
+.goal .gt b{font-variant-numeric:tabular-nums; text-align:right}
+.goal .bar{height:8px; background:var(--line); border-radius:99px; overflow:hidden; margin-top:6px}
+.goal .bar i{display:block; height:100%; width:0; background:var(--steel); border-radius:99px; transition:width .25s}
+.goal .g.over .gt b{color:var(--danger)}
+.goal .g.over .bar i{background:var(--danger)}
+.goal .g.done .gt b{color:var(--ok)}
+.goal .g.done .bar i{background:var(--ok)}
+
+/* Ingreso */
+.entry{margin-top:14px}
+.entry .head{display:flex; justify-content:space-between; align-items:baseline; margin-bottom:6px}
+.entry label{font-weight:600}
+.entry .next{color:var(--muted); font-size:14px; font-variant-numeric:tabular-nums}
+.row{display:grid; grid-template-columns:minmax(0,1fr) auto; gap:10px}
+#peso{
+  min-width:0; height:64px; padding:0 14px; font-size:32px; font-weight:700; font-variant-numeric:tabular-nums;
+  background:var(--surface); border:2px solid var(--line); border-radius:12px;
+}
+#peso:focus{border-color:var(--steel); outline:none}
+#peso.bad{border-color:var(--danger)}
+.btn{
+  min-height:48px; padding:0 16px; border-radius:12px; border:2px solid var(--line);
+  background:var(--surface); font-weight:600;
+}
+.btn.primary{background:var(--accent); border-color:var(--accent); color:var(--accent-ink); font-weight:800}
+.btn.danger{background:var(--danger); border-color:var(--danger); color:#fff}
+.btn.big{height:64px; padding:0 22px; font-size:20px}
+.btn:active{transform:translateY(1px)}
+.btn:disabled{opacity:.45}
+.pair{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:10px}
+
+/* Estadísticas */
+.stats{display:grid; grid-template-columns:repeat(3,1fr); gap:1px; margin-top:16px; background:var(--line); border:1px solid var(--line); border-radius:12px; overflow:hidden}
+.stats div{background:var(--surface); padding:10px 12px}
+.stats b{display:block; font-size:18px; font-variant-numeric:tabular-nums}
+.stats span{color:var(--muted); font-size:13px}
+
+/* Listas */
+.list h2{font-size:17px; margin:22px 2px 8px}
+.listbox{list-style:none; margin:0; padding:0; border:1px solid var(--line); border-radius:12px; overflow:hidden; background:var(--surface)}
+#list li{display:grid; grid-template-columns:2.6rem minmax(0,1fr) auto 2.75rem; align-items:center; gap:6px; padding:2px 6px 2px 12px; border-top:1px solid var(--line); min-height:52px}
+#list li:first-child{border-top:0}
+#list li.odd{background:var(--odd); box-shadow:inset 4px 0 0 var(--accent)}
+#list .no{color:var(--muted); font-variant-numeric:tabular-nums}
+#list .w{background:none; border:0; text-align:left; padding:10px 4px; font-size:22px; font-weight:700; font-variant-numeric:tabular-nums}
+#list .tag{font-size:12px; font-weight:700; color:#14212b; background:var(--accent); border-radius:6px; padding:1px 6px; margin-left:6px; vertical-align:middle}
+#list .tm{color:var(--muted); font-size:13px; font-variant-numeric:tabular-nums; text-align:right}
+#list .x{width:44px; height:44px; background:none; border:0; font-size:18px; color:var(--muted); border-radius:10px}
+.empty{padding:18px 14px; color:var(--muted); background:var(--surface); border:1px dashed var(--line); border-radius:12px; margin:0}
+
+/* Paneles desplegables */
+details{margin-top:14px; background:var(--surface); border:1px solid var(--line); border-radius:12px}
+details.first{margin-top:0; margin-bottom:12px}
+summary{padding:14px; font-weight:600; cursor:pointer; display:flex; justify-content:space-between; gap:10px}
+summary small{color:var(--muted); font-weight:400; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.fields{padding:0 14px 14px; display:grid; gap:10px}
+.fields .two{display:grid; grid-template-columns:1fr 1fr; gap:10px}
+.fields label{display:grid; gap:4px; font-size:14px; color:var(--muted)}
+.fields input[type=text]{height:46px; width:100%; padding:0 12px; font-size:16px; color:var(--ink); background:var(--bg); border:2px solid var(--line); border-radius:10px}
+.fields input[type=text]:focus{border-color:var(--steel); outline:none}
+.fields .sub{margin:4px 0 0; font-size:13px; color:var(--muted)}
+.fields .btn.warn{color:var(--danger)}
+#hist{margin:0 14px 14px}
+#hist li{display:grid; grid-template-columns:minmax(0,1fr) auto; gap:8px; align-items:center; padding:10px 12px; border-top:1px solid var(--line)}
+#hist li:first-child{border-top:0}
+#hist .hi b{display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+#hist .hi span{color:var(--muted); font-size:13px; font-variant-numeric:tabular-nums}
+#hist .hb{display:flex; gap:6px}
+#hist .hb button{min-height:40px; padding:0 12px; border-radius:10px; border:2px solid var(--line); background:var(--surface); font-weight:600}
+.histEmpty{margin:0 14px 14px}
+
+/* Avisos */
+#toast{
+  position:fixed; left:50%; bottom:calc(20px + env(safe-area-inset-bottom,0px)); transform:translate(-50%,20px);
+  max-width:calc(100vw - 32px); background:var(--ink); color:var(--bg); padding:12px 16px; border-radius:12px;
+  font-size:15px; opacity:0; pointer-events:none; transition:opacity .18s, transform .18s; z-index:10;
+}
+#toast.show{opacity:1; transform:translate(-50%,0)}
+dialog{border:0; border-radius:16px; padding:20px; width:min(92vw,380px); background:var(--surface); color:var(--ink)}
+dialog::backdrop{background:rgba(0,0,0,.55)}
+dialog h3{margin:0 0 6px; font-size:19px}
+dialog p{margin:0 0 14px; color:var(--muted)}
+dialog input{width:100%; height:56px; margin-bottom:14px; padding:0 12px; font-size:26px; font-weight:700; background:var(--bg); border:2px solid var(--line); border-radius:12px}
+dialog .btns{display:grid; grid-template-columns:1fr 1fr; gap:10px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<main>
+  <header class="top">
+    <h1>CARLOS CONDORI</h1>
+    <span>Control de rollos</span>
+  </header>
+
+  <details class="first" id="metaBox">
+    <summary>Datos del contenedor <small id="metaHint"></small></summary>
+    <div class="fields">
+      <label>Contenedor<input id="m_contenedor" type="text" autocomplete="off" placeholder="Ej. MSKU 123456-7"></label>
+      <label>Proveedor<input id="m_proveedor" type="text" autocomplete="off"></label>
+      <label>Tela<input id="m_tela" type="text" autocomplete="off"></label>
+      <p class="sub">Lo que dice el documento del proveedor (opcional). Así ves cuánto falta mientras descargas.</p>
+      <div class="two">
+        <label>Rollos según documento<input id="m_docRollos" type="text" inputmode="numeric" autocomplete="off" placeholder="Ej. 480"></label>
+        <label>Kg según documento<input id="m_docKg" type="text" inputmode="decimal" autocomplete="off" placeholder="Ej. 12000"></label>
+      </div>
+      <button class="btn warn" id="reset" type="button">Guardar en historial y empezar uno nuevo</button>
+    </div>
+  </details>
+
+  <section class="hero" aria-label="Totales">
+    <svg viewBox="0 0 240 240" aria-hidden="true" fill="none" stroke="#fff" stroke-width="3">
+      <circle cx="120" cy="120" r="14"/><circle cx="120" cy="120" r="32"/><circle cx="120" cy="120" r="50"/>
+      <circle cx="120" cy="120" r="68"/><circle cx="120" cy="120" r="86"/><circle cx="120" cy="120" r="104"/>
+    </svg>
+    <div class="cell"><span class="num" id="count">0</span><span class="lbl">rollos</span></div>
+    <div class="cell kg"><span class="num" id="total">0.00</span><span class="lbl">kg en total</span></div>
+  </section>
+
+  <section class="goal" id="goal" hidden aria-label="Avance contra el documento">
+    <div class="g" id="gRolls" hidden>
+      <div class="gt"><span>Rollos</span><b id="gRollsTxt"></b></div>
+      <div class="bar"><i id="gRollsBar"></i></div>
+    </div>
+    <div class="g" id="gKg" hidden>
+      <div class="gt"><span>Peso</span><b id="gKgTxt"></b></div>
+      <div class="bar"><i id="gKgBar"></i></div>
+    </div>
+  </section>
+
+  <section class="entry">
+    <div class="head">
+      <label for="peso">Peso del rollo (kg)</label>
+      <span class="next" id="next">Rollo n.º 1</span>
+    </div>
+    <div class="row">
+      <input id="peso" type="text" inputmode="decimal" autocomplete="off" autocorrect="off" enterkeyhint="done" placeholder="0.00">
+      <button class="btn primary big" id="add" type="button">Agregar</button>
+    </div>
+    <div class="pair">
+      <button class="btn" id="undo" type="button">Deshacer último</button>
+      <button class="btn" id="share" type="button">Compartir</button>
+    </div>
+    <div class="pair" style="grid-template-columns:1fr">
+      <button class="btn" id="pdf" type="button">Guardar PDF</button>
+    </div>
+  </section>
+
+  <section class="stats" aria-label="Resumen">
+    <div><b id="avg">–</b><span>Promedio (kg)</span></div>
+    <div><b id="min">–</b><span>Menor (kg)</span></div>
+    <div><b id="max">–</b><span>Mayor (kg)</span></div>
+  </section>
+
+  <section class="list">
+    <h2>Rollos ingresados</h2>
+    <p class="empty" id="empty">Todavía no hay rollos. Escribe el peso del primero y toca Agregar.</p>
+    <ol class="listbox" id="list" hidden></ol>
+  </section>
+
+  <details id="histBox">
+    <summary>Historial y respaldo <small id="histHint"></small></summary>
+    <p class="sub histSub" style="margin:0 14px 10px; font-size:13px; color:var(--muted)">Los contenedores anteriores quedan guardados aquí en este celular. Guarda un respaldo de vez en cuando por si se borran los datos del navegador.</p>
+    <p class="empty histEmpty" id="histEmpty">Todavía no hay contenedores en el historial.</p>
+    <ul class="listbox" id="hist" hidden></ul>
+    <div class="fields">
+      <div class="two">
+        <button class="btn" id="bkSave" type="button">Guardar respaldo</button>
+        <button class="btn" id="bkLoad" type="button">Cargar respaldo</button>
+      </div>
+      <input id="bkFile" type="file" accept=".json,application/json" hidden>
+    </div>
+  </details>
+</main>
+
+<div id="toast" role="status" aria-live="polite"></div>
+
+<dialog id="dlg">
+  <h3 id="dlgTitle"></h3>
+  <p id="dlgText"></p>
+  <input id="dlgInput" type="text" inputmode="decimal" autocomplete="off">
+  <div class="btns">
+    <button class="btn" id="dlgCancel" type="button">Cancelar</button>
+    <button class="btn primary" id="dlgOk" type="button">Aceptar</button>
+  </div>
+</dialog>
+
+<script>
+(() => {
+  'use strict';
+
+  /* ---------- Estado y guardado automático ---------- */
+  const KEY = 'richatex-rollos-v1', HKEY = 'richatex-historial-v1';
+  const $ = id => document.getElementById(id);
+  const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  const fresh = () => ({ id: newId(), meta: { contenedor: '', proveedor: '', tela: '', docRollos: null, docKg: null }, rolls: [], started: Date.now() });
+
+  // Limpia cualquier conteo (guardado, de historial o de un respaldo) para que siempre tenga el formato correcto.
+  function cleanCount(c) {
+    const f = fresh(), m = (c && c.meta) || {};
+    const str = v => (typeof v === 'string' ? v : '');
+    const pos = v => (Number.isFinite(v) && v > 0 ? Math.round(v) : null);
+    const out = {
+      id: (c && typeof c.id === 'string' && c.id) || f.id,
+      meta: { contenedor: str(m.contenedor), proveedor: str(m.proveedor), tela: str(m.tela), docRollos: pos(m.docRollos), docKg: pos(m.docKg) },
+      rolls: ((c && c.rolls) || []).filter(r => r && Number.isFinite(r.g) && r.g > 0).map(r => ({ g: Math.round(r.g), t: Number.isFinite(r.t) ? r.t : Date.now() })),
+      started: (c && Number.isFinite(c.started)) ? c.started : f.started
+    };
+    if (c && Number.isFinite(c.closed)) out.closed = c.closed;
+    return out;
+  }
+  function load() {
+    try { const s = JSON.parse(localStorage.getItem(KEY)); if (s && Array.isArray(s.rolls)) return cleanCount(s); } catch (e) {}
+    return fresh();
+  }
+  function loadHist() {
+    try { const h = JSON.parse(localStorage.getItem(HKEY)); if (Array.isArray(h)) return h.filter(x => x && Array.isArray(x.rolls)).map(cleanCount); } catch (e) {}
+    return [];
+  }
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} }
+  function saveHist() { try { localStorage.setItem(HKEY, JSON.stringify(hist)); } catch (e) {} }
+  let state = load();
+  let hist = loadHist();
+
+  /* ---------- Utilidades ---------- */
+  // Los pesos se guardan en centésimas de kg (enteros) para que la suma nunca dé decimales raros.
+  const fmt = c => (c / 100).toFixed(2);
+  const pad = n => String(n).padStart(2, '0');
+  const fmtDate = t => { const d = new Date(t); return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`; };
+  const hhmm = t => { const d = new Date(t); return `${pad(d.getHours())}:${pad(d.getMinutes())}`; };
+  const fmtDateTime = t => `${fmtDate(t)} ${hhmm(t)}`;
+  const sumOf = c => c.rolls.reduce((a, r) => a + r.g, 0);
+  const sum = () => sumOf(state);
+
+  function parseKg(s) {
+    s = String(s).trim().replace(/\s/g, '');
+    if (!s) return NaN;
+    if (s.includes(',') && s.includes('.')) {
+      s = s.lastIndexOf(',') > s.lastIndexOf('.') ? s.replace(/\./g, '').replace(',', '.') : s.replace(/,/g, '');
+    } else {
+      s = s.replace(',', '.');
+    }
+    if (!/^(\d+\.?\d*|\.\d+)$/.test(s)) return NaN;
+    return Math.round(parseFloat(s) * 100);
+  }
+
+  let toastTimer;
+  function toast(msg) {
+    const t = $('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 2600);
+  }
+  const buzz = ms => { try { navigator.vibrate && navigator.vibrate(ms); } catch (e) {} };
+
+  /* ---------- Cuadro de diálogo (confirmar / editar) ---------- */
+  function ask({ title, text = '', input = null, ok = 'Aceptar', cancel = 'Cancelar', danger = false }) {
+    return new Promise(resolve => {
+      const d = $('dlg'), inp = $('dlgInput'), ac = new AbortController(), o = { signal: ac.signal };
+      $('dlgTitle').textContent = title;
+      $('dlgText').textContent = text;
+      inp.hidden = input === null;
+      if (input !== null) inp.value = input;
+      $('dlgOk').textContent = ok;
+      $('dlgOk').className = 'btn ' + (danger ? 'danger' : 'primary');
+      $('dlgCancel').textContent = cancel;
+      const finish = v => { ac.abort(); if (d.open) d.close(); resolve(v); };
+      $('dlgOk').addEventListener('click', () => finish(input !== null ? inp.value : true), o);
+      $('dlgCancel').addEventListener('click', () => finish(null), o);
+      d.addEventListener('cancel', e => { e.preventDefault(); finish(null); }, o);
+      inp.addEventListener('keydown', e => { if (e.key === 'Enter') finish(inp.value); }, o);
+      d.showModal();
+      if (input !== null) { inp.focus(); inp.select(); }
+    });
+  }
+
+  /* ---------- Pantalla ---------- */
+  function renderGoal() {
+    const m = state.meta, n = state.rolls.length, total = sum();
+    const hasR = m.docRollos > 0, hasK = m.docKg > 0;
+    $('goal').hidden = !(hasR || hasK);
+    $('gRolls').hidden = !hasR;
+    $('gKg').hidden = !hasK;
+    if (hasR) {
+      const d = n - m.docRollos;
+      $('gRollsTxt').textContent = `${n} de ${m.docRollos} · ${d < 0 ? 'faltan ' + (-d) : d > 0 ? 'sobran ' + d : 'completo'}`;
+      $('gRolls').className = 'g' + (d > 0 ? ' over' : d === 0 ? ' done' : '');
+      $('gRollsBar').style.width = Math.min(100, n / m.docRollos * 100) + '%';
+    }
+    if (hasK) {
+      const d = total - m.docKg;
+      $('gKgTxt').textContent = `${fmt(total)} de ${fmt(m.docKg)} kg · ${d < 0 ? 'faltan ' + fmt(-d) : d > 0 ? 'sobran ' + fmt(d) : 'completo'}`;
+      $('gKg').className = 'g' + (d > 0 ? ' over' : d === 0 ? ' done' : '');
+      $('gKgBar').style.width = Math.min(100, total / m.docKg * 100) + '%';
+    }
+  }
+
+  function render() {
+    const r = state.rolls, n = r.length, total = sum();
+    const avg = n ? Math.round(total / n) : 0;
+    $('count').textContent = n;
+    $('total').textContent = fmt(total);
+    $('next').textContent = `Rollo n.º ${n + 1}`;
+    $('avg').textContent = n ? fmt(avg) : '–';
+    $('min').textContent = n ? fmt(Math.min(...r.map(x => x.g))) : '–';
+    $('max').textContent = n ? fmt(Math.max(...r.map(x => x.g))) : '–';
+    $('empty').hidden = n > 0;
+    $('list').hidden = n === 0;
+    $('undo').disabled = n === 0;
+    const html = [];
+    for (let i = n - 1; i >= 0; i--) {
+      const x = r[i];
+      const odd = n >= 5 && (x.g > avg * 1.5 || x.g < avg * 0.5);
+      html.push(
+        `<li data-i="${i}"${odd ? ' class="odd"' : ''}>` +
+        `<span class="no">${i + 1}</span>` +
+        `<button class="w" data-act="edit" aria-label="Corregir rollo ${i + 1}">${fmt(x.g)} kg${odd ? '<span class="tag">Revisar</span>' : ''}</button>` +
+        `<span class="tm">${hhmm(x.t)}</span>` +
+        `<button class="x" data-act="del" aria-label="Eliminar rollo ${i + 1}">✕</button></li>`
+      );
+    }
+    $('list').innerHTML = html.join('');
+    const m = state.meta;
+    $('metaHint').textContent = [m.contenedor, m.proveedor, m.tela].filter(Boolean).join(' · ');
+    renderGoal();
+  }
+
+  const escHtml = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  function renderHist() {
+    $('histHint').textContent = hist.length ? `${hist.length} guardado${hist.length === 1 ? '' : 's'}` : '';
+    $('histEmpty').hidden = hist.length > 0;
+    $('hist').hidden = hist.length === 0;
+    $('hist').innerHTML = hist.map(h => {
+      const name = h.meta.contenedor || h.meta.proveedor || h.meta.tela || 'Sin nombre';
+      return `<li data-id="${escHtml(h.id)}"><div class="hi"><b>${escHtml(name)}</b>` +
+        `<span>${fmtDate(h.closed || h.started)} · ${h.rolls.length} rollos · ${fmt(sumOf(h))} kg</span></div>` +
+        `<div class="hb"><button data-hact="pdf" aria-label="PDF de ${escHtml(name)}">PDF</button>` +
+        `<button data-hact="open" aria-label="Abrir ${escHtml(name)}">Abrir</button>` +
+        `<button data-hact="del" aria-label="Eliminar ${escHtml(name)} del historial">✕</button></div></li>`;
+    }).join('');
+  }
+
+  function syncMetaInputs() {
+    const m = state.meta;
+    $('m_contenedor').value = m.contenedor;
+    $('m_proveedor').value = m.proveedor;
+    $('m_tela').value = m.tela;
+    $('m_docRollos').value = m.docRollos || '';
+    $('m_docKg').value = m.docKg ? fmt(m.docKg) : '';
+  }
+
+  /* ---------- Acciones ---------- */
+  let lastAdd = 0, adding = false;
+  async function addRoll() {
+    if (adding) return;
+    const peso = $('peso');
+    const g = parseKg(peso.value);
+    if (isNaN(g) || g <= 0) {
+      if (Date.now() - lastAdd > 800) {
+        toast('Escribe un peso válido, por ejemplo 25.4');
+        peso.classList.add('bad'); setTimeout(() => peso.classList.remove('bad'), 700);
+      }
+      peso.focus();
+      return;
+    }
+    if (g > 100000) { toast('Ese peso es demasiado grande para un rollo'); peso.focus(); peso.select(); return; }
+    adding = true;
+    try {
+      const n = state.rolls.length, avg = n ? sum() / n : 0;
+      let warn = null;
+      if (n >= 5 && (g > avg * 1.5 || g < avg * 0.5)) {
+        warn = `Este rollo pesa ${fmt(g)} kg y el promedio es ${fmt(Math.round(avg))} kg. ¿Está bien escrito?`;
+      } else if (n < 5 && g > 50000) {
+        warn = `${fmt(g)} kg es mucho para un rollo. ¿Está bien escrito?`;
+      }
+      if (warn) {
+        const ok = await ask({ title: 'Peso inusual', text: warn, ok: 'Sí, agregar', cancel: 'Corregir' });
+        if (!ok) { peso.focus(); peso.select(); return; }
+      }
+      state.rolls.push({ g, t: Date.now() });
+      save();
+      lastAdd = Date.now();
+      peso.value = '';
+      render();
+      buzz(25);
+      const c = state.rolls.length;
+      if (c % 100 === 0) toast(`${c} rollos. Buen momento para guardar el PDF o un respaldo.`);
+    } finally {
+      adding = false;
+      peso.focus();
+    }
+  }
+
+  function undoLast() {
+    if (!state.rolls.length) { toast('No hay rollos para deshacer'); return; }
+    const r = state.rolls.pop();
+    save(); render();
+    toast(`Se quitó el rollo ${state.rolls.length + 1}: ${fmt(r.g)} kg`);
+  }
+
+  async function editRoll(i) {
+    const v = await ask({ title: `Corregir rollo ${i + 1}`, text: 'Escribe el peso correcto en kg.', input: fmt(state.rolls[i].g), ok: 'Guardar' });
+    if (v === null) return;
+    const g = parseKg(v);
+    if (isNaN(g) || g <= 0 || g > 100000) { toast('Peso no válido, no se cambió'); return; }
+    state.rolls[i].g = g; save(); render();
+  }
+
+  async function delRoll(i) {
+    const ok = await ask({ title: `Eliminar rollo ${i + 1}`, text: `Se quitará el rollo de ${fmt(state.rolls[i].g)} kg y los siguientes cambiarán de número.`, ok: 'Eliminar', danger: true });
+    if (!ok) return;
+    state.rolls.splice(i, 1); save(); render();
+  }
+
+  // Guarda el conteo actual en el historial (si tiene rollos) para no perderlo.
+  function archiveCurrent() {
+    if (!state.rolls.length) return;
+    hist = hist.filter(h => h.id !== state.id);
+    hist.unshift(Object.assign(cleanCount(state), { closed: Date.now() }));
+    saveHist();
+  }
+
+  async function resetAll() {
+    const n = state.rolls.length;
+    const ok = await ask({
+      title: 'Empezar un contenedor nuevo',
+      text: n ? `El conteo actual (${n} rollos) se guarda en el historial y empiezas desde cero.` : 'Se borrarán los datos escritos del contenedor.',
+      ok: n ? 'Guardar y empezar' : 'Empezar'
+    });
+    if (!ok) return;
+    archiveCurrent();
+    state = fresh(); save();
+    syncMetaInputs();
+    $('metaBox').open = false;
+    render(); renderHist();
+    if (n) toast('Guardado en el historial');
+    $('peso').focus();
+  }
+
+  /* ---------- Historial ---------- */
+  async function openHist(id) {
+    const h = hist.find(x => x.id === id);
+    if (!h) return;
+    if (state.rolls.length) {
+      const ok = await ask({ title: 'Abrir este contenedor', text: 'Tu conteo actual se guarda en el historial y este pasa a ser el conteo actual.', ok: 'Abrir' });
+      if (!ok) return;
+      archiveCurrent();
+    }
+    hist = hist.filter(x => x.id !== id);
+    state = cleanCount(h); delete state.closed;
+    save(); saveHist();
+    syncMetaInputs(); render(); renderHist();
+    window.scrollTo({ top: 0 });
+    toast('Contenedor abierto');
+  }
+  async function delHist(id) {
+    const h = hist.find(x => x.id === id);
+    if (!h) return;
+    const name = h.meta.contenedor || 'este contenedor';
+    const ok = await ask({ title: 'Eliminar del historial', text: `Se borrará ${name} (${h.rolls.length} rollos). No se puede deshacer.`, ok: 'Eliminar', danger: true });
+    if (!ok) return;
+    hist = hist.filter(x => x.id !== id); saveHist(); renderHist();
+  }
+
+  /* ---------- Respaldo ---------- */
+  function downloadBlob(blob, name) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 30000);
+  }
+  function saveBackup() {
+    const now = new Date();
+    const data = { app: 'richatex-rollos', version: 1, saved: now.getTime(), current: state, history: hist };
+    const stamp = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}`;
+    downloadBlob(new Blob([JSON.stringify(data)], { type: 'application/json' }), `Respaldo_RICHATEX_${stamp}.json`);
+    toast('Respaldo guardado');
+  }
+  async function loadBackup(file) {
+    let data;
+    try {
+      data = JSON.parse(await file.text());
+      if (!data || data.app !== 'richatex-rollos' || !data.current || !Array.isArray(data.current.rolls)) throw new Error('formato');
+    } catch (e) { toast('Ese archivo no es un respaldo de RICHATEX'); return; }
+    const cur = cleanCount(data.current);
+    const past = (Array.isArray(data.history) ? data.history : []).filter(x => x && Array.isArray(x.rolls)).map(cleanCount);
+    const ok = await ask({
+      title: 'Cargar respaldo',
+      text: `El respaldo trae un conteo de ${cur.rolls.length} rollos y ${past.length} contenedor${past.length === 1 ? '' : 'es'} en el historial.` +
+        (state.rolls.length && state.id !== cur.id ? ' Tu conteo actual se guarda en el historial.' : ''),
+      ok: 'Cargar'
+    });
+    if (!ok) return;
+    if (state.id !== cur.id) archiveCurrent();
+    past.forEach(p => { if (!hist.some(h => h.id === p.id)) hist.push(p); });
+    hist = hist.filter(h => h.id !== cur.id).sort((a, b) => (b.closed || b.started) - (a.closed || a.started));
+    delete cur.closed;
+    state = cur;
+    save(); saveHist();
+    syncMetaInputs(); render(); renderHist();
+    window.scrollTo({ top: 0 });
+    toast('Respaldo cargado');
+  }
+
+  /* ---------- PDF (sin librerías externas, funciona sin internet) ---------- */
+  //<PDF>
+  const CW = (s, size) => {
+    let w = 0;
+    for (const ch of String(s)) w += (ch >= '0' && ch <= '9') ? 0.556 : (ch === '.' || ch === ':' || ch === '/' || ch === ' ' || ch === ',') ? 0.278 : 0.6;
+    return w * size;
+  };
+  function buildPdf(d) {
+    const W = 595, H = 842, M = 44, FOOT = 40, GAP = 14, RH = 14.5;
+    const NAVY = '0.078 0.129 0.169 rg', WHITE = '1 g', INK = '0.08 g', SOFT = '0.28 g', MUTED = '0.42 g', LIGHT = '0.94 g';
+    const YELLOW = '0.949 0.718 0.02 rg', TINT = '0.996 0.964 0.84 rg', RED = '0.7 0.1 0.1 rg';
+    const GREEN = '0.114 0.478 0.302 rg', TINTG = '0.906 0.965 0.925 rg';
+    const HEAD = [NAVY, YELLOW, GREEN], TINTS = [null, TINT, TINTG];
+    const pages = [];
+    let ops;
+    const esc = s => String(s).replace(/[^\x00-\xFF]/g, '?').replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)');
+    const T = (x, y, s, sz, f = 'F1') => ops.push(`BT /${f} ${sz} Tf ${x.toFixed(2)} ${y.toFixed(2)} Td (${esc(s)}) Tj ET`);
+    const TR = (xr, y, s, sz, f = 'F1') => T(xr - CW(s, sz), y, s, sz, f);
+    const rect = (x, y, w, h, c) => ops.push(`${c} ${x.toFixed(2)} ${y.toFixed(2)} ${w.toFixed(2)} ${h.toFixed(2)} re f`);
+    const line = (x1, y1, x2, y2, g, lw) => ops.push(`${g} G ${lw} w ${x1.toFixed(2)} ${y1.toFixed(2)} m ${x2.toFixed(2)} ${y2.toFixed(2)} l S`);
+    const newPage = () => { ops = []; pages.push(ops); };
+
+    // Página 1: cabecera
+    newPage();
+    rect(0, H - 72, W, 72, NAVY);
+    rect(0, H - 76, W, 4, YELLOW);
+    ops.push(WHITE);
+    T(M, H - 46, 'RICHATEX', 22, 'F2');
+    TR(W - M, H - 44, 'Control de rollos', 11);
+
+    let y = H - 106;
+    d.info.forEach(([l, v]) => { ops.push(INK); T(M, y, l, 10, 'F2'); T(M + 80, y, v, 10); y -= 16; });
+    y -= 6;
+
+    // Totales y comparación con el documento
+    const bw = (W - 2 * M - 24) / 4;
+    const boxRow = items => {
+      items.slice(0, 4).forEach(([l, v, warn], i) => {
+        const x = M + i * (bw + 8);
+        rect(x, y - 44, bw, 44, LIGHT);
+        ops.push(MUTED); T(x + 8, y - 15, l, 8);
+        ops.push(warn ? RED : INK); T(x + 8, y - 35, v, 14, 'F2');
+      });
+      y -= 52;
+    };
+    boxRow(d.totals);
+    if (d.compare && d.compare.length) boxRow(d.compare);
+    y -= 12;
+    ops.push(INK); T(M, y, 'Detalle de rollos', 11, 'F2');
+    ops.push(MUTED); T(M + 98, y, 'Se lee de izquierda a derecha: primero la columna azul, luego la amarilla y al final la verde.', 8.5);
+    y -= 24;
+
+    // Reparto de rollos: columna azul (izquierda) y columna amarilla (derecha)
+    const BW = (W - 2 * M - 2 * GAP) / 3, X0 = M, topN = H - M - 14;
+    const topOf = p => (p === 0 ? y : topN);
+    const perCol = p => Math.floor((topOf(p) - 22 - (M + FOOT)) / RH) + 1;
+    const place = [];
+    let p = 0, c = 0, r = 0;
+    d.rolls.forEach(x => {
+      if (r >= perCol(p)) { c++; r = 0; if (c > 2) { p++; c = 0; } }
+      place.push({ p, c, r, x });
+      r++;
+    });
+    const nPages = d.rolls.length ? p + 1 : 1;
+
+    for (let pg = 0; pg < nPages; pg++) {
+      if (pg > 0) {
+        newPage();
+        ops.push(MUTED); T(M, H - M + 6, 'RICHATEX - continuación del detalle. Orden: columna azul, luego amarilla y al final verde.', 8.5);
+      }
+      const top = topOf(pg), items = place.filter(e => e.p === pg);
+      [0, 1, 2].forEach(col => {
+        const its = items.filter(e => e.c === col);
+        if (!its.length) return;
+        const x = X0 + col * (BW + GAP);
+        const bottom = top - 22 - (its.length - 1) * RH - 5;
+        if (TINTS[col]) rect(x, bottom, BW, (top - 5) - bottom, TINTS[col]);
+        rect(x, top - 5, BW, 17, HEAD[col]);
+        ops.push(col === 1 ? INK : WHITE);
+        TR(x + 40, top, 'N°', 9, 'F2'); TR(x + 136, top, 'Peso (kg)', 9, 'F2');
+        its.forEach(e => {
+          const yy = top - 22 - e.r * RH;
+          ops.push(INK);
+          TR(x + 40, yy, String(e.x.n), 10.5); TR(x + 136, yy, e.x.kg, 10.5, 'F2');
+          if (e.x.n % 10 === 0) line(x, yy - 3.5, x + BW, yy - 3.5, col === 0 ? 0.7 : 0.75, 0.4);
+        });
+      });
+    }
+
+    // Pie de página
+    pages.forEach((pp, i) => {
+      ops = pp;
+      ops.push(MUTED);
+      T(M, 26, `RICHATEX - ${d.generated}`, 8);
+      TR(W - M, 26, `Pág. ${i + 1} de ${pages.length}`, 8);
+    });
+
+    // Ensamblar el archivo PDF
+    const objs = [];
+    objs.push('<< /Type /Catalog /Pages 2 0 R >>');
+    objs.push(`<< /Type /Pages /Kids [${pages.map((_, i) => `${5 + 2 * i} 0 R`).join(' ')}] /Count ${pages.length} >>`);
+    objs.push('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>');
+    objs.push('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>');
+    pages.forEach((pp, i) => {
+      const s = pp.join('\n');
+      objs.push(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${W} ${H}] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents ${6 + 2 * i} 0 R >>`);
+      objs.push(`<< /Length ${s.length} >>\nstream\n${s}\nendstream`);
+    });
+    let out = '%PDF-1.4\n';
+    const offs = [];
+    objs.forEach((o, i) => { offs.push(out.length); out += `${i + 1} 0 obj\n${o}\nendobj\n`; });
+    const xref = out.length;
+    out += `xref\n0 ${objs.length + 1}\n0000000000 65535 f \n`;
+    offs.forEach(o => { out += String(o).padStart(10, '0') + ' 00000 n \n'; });
+    out += `trailer\n<< /Size ${objs.length + 1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF`;
+    const bytes = new Uint8Array(out.length);
+    for (let i = 0; i < out.length; i++) bytes[i] = out.charCodeAt(i) & 255;
+    return bytes;
+  }
+  //</PDF>
+
+  function pdfData(c) {
+    const m = c.meta, rl = c.rolls, n = rl.length, total = sumOf(c);
+    const avg = n ? Math.round(total / n) : 0;
+    const gs = rl.map(x => x.g);
+    const compare = [];
+    if (m.docRollos > 0) compare.push(['Documento (rollos)', String(m.docRollos)]);
+    if (m.docKg > 0) compare.push(['Documento (kg)', fmt(m.docKg)]);
+    if (m.docRollos > 0) { const d = n - m.docRollos; compare.push(['Diferencia rollos', (d > 0 ? '+' : '') + d, d !== 0]); }
+    if (m.docKg > 0) { const d = total - m.docKg; compare.push(['Diferencia (kg)', (d > 0 ? '+' : d < 0 ? '-' : '') + fmt(Math.abs(d)), d !== 0]); }
+    return {
+      info: [['Contenedor', m.contenedor], ['Proveedor', m.proveedor], ['Tela', m.tela], ['Fecha', fmtDate(c.started)]].filter(x => x[1]),
+      totals: [
+        ['Rollos', String(n)], ['Total (kg)', fmt(total)], ['Promedio (kg)', n ? fmt(avg) : '-'],
+        ['Menor / Mayor (kg)', n ? `${fmt(Math.min(...gs))} / ${fmt(Math.max(...gs))}` : '-']
+      ],
+      compare,
+      rolls: rl.map((x, i) => ({ n: i + 1, kg: fmt(x.g) })),
+      generated: fmtDateTime(Date.now())
+    };
+  }
+  const makePdfBlob = c => new Blob([buildPdf(pdfData(c))], { type: 'application/pdf' });
+  function fileName(c) {
+    const slug = c.meta.contenedor.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-zA-Z0-9]+/g, '-').replace(/^-|-$/g, '');
+    const d = new Date(c.started);
+    return `Rollos_${slug || 'conteo'}_${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}.pdf`;
+  }
+
+  function savePdf(c) {
+    if (!c.rolls.length) { toast('Agrega al menos un rollo para generar el PDF'); return; }
+    downloadBlob(makePdfBlob(c), fileName(c));
+    toast('PDF listo');
+  }
+
+  function summaryText(c) {
+    const m = c.meta, n = c.rolls.length, total = sumOf(c);
+    const L = ['RICHATEX - Control de rollos'];
+    if (m.contenedor) L.push('Contenedor: ' + m.contenedor);
+    if (m.proveedor) L.push('Proveedor: ' + m.proveedor);
+    if (m.tela) L.push('Tela: ' + m.tela);
+    L.push('Fecha: ' + fmtDate(c.started), `Rollos: ${n}`, `Total: ${fmt(total)} kg`, `Promedio: ${fmt(Math.round(total / n))} kg`);
+    if (m.docRollos > 0) L.push(`Según documento: ${m.docRollos} rollos (diferencia ${n - m.docRollos > 0 ? '+' : ''}${n - m.docRollos})`);
+    if (m.docKg > 0) L.push(`Según documento: ${fmt(m.docKg)} kg (diferencia ${total - m.docKg > 0 ? '+' : total - m.docKg < 0 ? '-' : ''}${fmt(Math.abs(total - m.docKg))})`);
+    return L.join('\n');
+  }
+
+  async function share() {
+    if (!state.rolls.length) { toast('Todavía no hay rollos para compartir'); return; }
+    const text = summaryText(state);
+    try {
+      const file = new File([makePdfBlob(state)], fileName(state), { type: 'application/pdf' });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file], title: 'RICHATEX', text });
+        return;
+      }
+      if (navigator.share) { await navigator.share({ title: 'RICHATEX', text }); return; }
+    } catch (e) {
+      if (e && e.name === 'AbortError') return;
+    }
+    try { await navigator.clipboard.writeText(text); toast('Resumen copiado, pégalo donde quieras'); }
+    catch (e) { window.open('https://wa.me/?text=' + encodeURIComponent(text), '_blank'); }
+  }
+
+  /* ---------- Pantalla encendida mientras se cuenta ---------- */
+  let wl = null;
+  async function keepAwake() {
+    try {
+      if ('wakeLock' in navigator && !wl) {
+        wl = await navigator.wakeLock.request('screen');
+        wl.addEventListener('release', () => { wl = null; });
+      }
+    } catch (e) {}
+  }
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') keepAwake(); });
+  document.addEventListener('pointerdown', keepAwake, { once: true });
+
+  /* ---------- Eventos ---------- */
+  $('add').addEventListener('click', addRoll);
+  $('peso').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); addRoll(); } });
+  $('peso').addEventListener('input', e => { e.target.value = e.target.value.replace(/[^\d.,]/g, ''); });
+  $('undo').addEventListener('click', undoLast);
+  $('pdf').addEventListener('click', () => savePdf(state));
+  $('share').addEventListener('click', share);
+  $('reset').addEventListener('click', resetAll);
+  $('bkSave').addEventListener('click', saveBackup);
+  $('bkLoad').addEventListener('click', () => $('bkFile').click());
+  $('bkFile').addEventListener('change', e => { const f = e.target.files[0]; e.target.value = ''; if (f) loadBackup(f); });
+  $('list').addEventListener('click', e => {
+    const b = e.target.closest('button[data-act]');
+    if (!b) return;
+    const i = +b.closest('li').dataset.i;
+    if (b.dataset.act === 'edit') editRoll(i); else delRoll(i);
+  });
+  $('hist').addEventListener('click', e => {
+    const b = e.target.closest('button[data-hact]');
+    if (!b) return;
+    const id = b.closest('li').dataset.id;
+    if (b.dataset.hact === 'pdf') { const h = hist.find(x => x.id === id); if (h) savePdf(h); }
+    else if (b.dataset.hact === 'open') openHist(id);
+    else delHist(id);
+  });
+  ['contenedor', 'proveedor', 'tela'].forEach(k => {
+    $('m_' + k).addEventListener('input', e => { state.meta[k] = e.target.value.trim(); save(); render(); });
+  });
+  $('m_docRollos').addEventListener('input', e => {
+    const v = parseInt(e.target.value.replace(/\D/g, ''), 10);
+    state.meta.docRollos = v > 0 ? v : null; save(); renderGoal();
+  });
+  $('m_docKg').addEventListener('input', e => {
+    const v = parseKg(e.target.value);
+    state.meta.docKg = v > 0 ? v : null; save(); renderGoal();
+  });
+
+  syncMetaInputs();
+  render();
+  renderHist();
+  $('peso').focus();
+})();
+</script>
+</body>
+</html>
